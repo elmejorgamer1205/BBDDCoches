@@ -32,14 +32,37 @@ public class GestionCochesIA {
                 System.out.println("5. Modificar");
                 System.out.println("6. Listar");
                 System.out.println("7. Salir");
-                int opcion = leerEntero(scanner, "Opción: ");
+                int opcion = leerEntero(scanner.nextLine(), "Opción: ");
                 try {
                     switch (opcion) {
-                        case 1 -> cargarCsv(scanner);
-                        case 2 -> insertar(scanner);
+                        case 1 -> {
+                            System.out.print("Ruta del CSV [src/BBDD Coches.csv]: ");
+                            String ruta = scanner.nextLine().trim();
+                            cargarCsv(ruta.isEmpty() ? "src/BBDD Coches.csv" : ruta);
+                        }
+                        case 2 -> {
+                            System.out.print("Matrícula: "); String matricula = scanner.nextLine().trim();
+                            System.out.print("Marca: "); String marca = scanner.nextLine().trim();
+                            System.out.print("Modelo: "); String modelo = scanner.nextLine().trim();
+                            System.out.print("Posición de inserción: "); int posicion = leerEntero(scanner.nextLine(), "Posición");
+                            insertar(matricula, marca, modelo, posicion);
+                        }
                         case 3 -> ordenar();
-                        case 4 -> borrar(scanner);
-                        case 5 -> modificar(scanner);
+                        case 4 -> {
+                            System.out.println("1. Por matrícula  2. Por posición");
+                            int modo = leerEntero(scanner.nextLine(), "Método");
+                            if (modo == 1) {
+                                System.out.print("Matrícula: "); borrarPorMatricula(scanner.nextLine().trim());
+                            } else if (modo == 2) {
+                                System.out.print("Posición: "); borrarPorPosicion(leerEntero(scanner.nextLine(), "Posición"));
+                            } else System.out.println("Método no válido.");
+                        }
+                        case 5 -> {
+                            System.out.print("Posición del registro: "); int posicion = leerEntero(scanner.nextLine(), "Posición");
+                            System.out.print("Nueva marca: "); String marca = scanner.nextLine().trim();
+                            System.out.print("Nuevo modelo: "); String modelo = scanner.nextLine().trim();
+                            modificar(posicion, marca, modelo);
+                        }
                         case 6 -> listar();
                         case 7 -> salir = true;
                         default -> System.out.println("Opción no válida.");
@@ -52,24 +75,13 @@ public class GestionCochesIA {
     }
 
     /** Lee una línea y la convierte en entero, repitiendo la pregunta si no es válida. */
-    private static int leerEntero(Scanner scanner, String mensaje) {
-        while (true) {
-            System.out.print(mensaje);
-            try { return Integer.parseInt(scanner.nextLine().trim()); }
-            catch (NumberFormatException e) { System.out.println("Introduce un número entero."); }
-        }
-    }
-
-    /** Pide una línea de texto al usuario. */
-    private static String leerTexto(Scanner scanner, String mensaje) {
-        System.out.print(mensaje);
-        return scanner.nextLine().trim();
+    private static int leerEntero(String texto, String campo) {
+        try { return Integer.parseInt(texto.trim()); }
+        catch (NumberFormatException e) { throw new IllegalArgumentException(campo + " debe ser un número entero."); }
     }
 
     /** Carga filas de un CSV separado por comas o punto y coma en la base de datos. */
-    private static void cargarCsv(Scanner scanner) throws IOException {
-        String ruta = leerTexto(scanner, "Ruta del CSV [src/BBDD Coches.csv]: ");
-        if (ruta.isEmpty()) ruta = "src/BBDD Coches.csv";
+    private static void cargarCsv(String ruta) throws IOException {
         int cargados = 0, omitidos = 0;
         try (BufferedReader reader = Files.newBufferedReader(new File(ruta).toPath(), StandardCharsets.UTF_8);
              RandomAccessFile raf = new RandomAccessFile(ARCHIVO_BD, "rw")) {
@@ -116,15 +128,12 @@ public class GestionCochesIA {
     }
 
     /** Inserta un coche en el índice solicitado y desplaza los registros siguientes. */
-    private static void insertar(Scanner scanner) throws IOException {
-        String matricula = leerTexto(scanner, "Matrícula: ").toUpperCase();
-        String marca = leerTexto(scanner, "Marca: ");
-        String modelo = leerTexto(scanner, "Modelo: ");
+    private static void insertar(String matricula, String marca, String modelo, int posicion) throws IOException {
+        matricula = matricula.toUpperCase();
         validarRegistro(matricula, marca, modelo);
         try (RandomAccessFile raf = new RandomAccessFile(ARCHIVO_BD, "rw")) {
             if (existeMatricula(raf, matricula)) throw new IllegalArgumentException("esa matrícula ya existe.");
             int total = totalRegistros(raf);
-            int posicion = leerEntero(scanner, "Posición (0 a " + total + "): ");
             validarPosicion(posicion, total, true);
             raf.setLength((long) (total + 1) * TAMANO_REGISTRO);
             // El desplazamiento inverso evita sobrescribir registros que aún no se han movido.
@@ -149,20 +158,22 @@ public class GestionCochesIA {
     }
 
     /** Borra un registro buscándolo por matrícula o por índice. */
-    private static void borrar(Scanner scanner) throws IOException {
-        System.out.println("1. Por matrícula  2. Por posición");
-        int modo = leerEntero(scanner, "Método: ");
+    private static void borrarPorMatricula(String matricula) throws IOException {
         try (RandomAccessFile raf = new RandomAccessFile(ARCHIVO_BD, "rw")) {
             int total = totalRegistros(raf);
-            int posicion;
-            if (modo == 1) {
-                String matricula = leerTexto(scanner, "Matrícula: ").toUpperCase();
-                posicion = buscarMatricula(raf, matricula);
-                if (posicion < 0) throw new IllegalArgumentException("no se encontró esa matrícula.");
-            } else if (modo == 2) {
-                posicion = leerEntero(scanner, "Posición (0 a " + (total - 1) + "): ");
-                validarPosicion(posicion, total, false);
-            } else throw new IllegalArgumentException("método no válido.");
+            int posicion = buscarMatricula(raf, matricula.toUpperCase());
+            if (posicion < 0) throw new IllegalArgumentException("no se encontró esa matrícula.");
+            for (int i = posicion; i < total - 1; i++) copiarRegistro(raf, i + 1, i);
+            raf.setLength((long) (total - 1) * TAMANO_REGISTRO);
+            System.out.println("Registro borrado.");
+        }
+    }
+
+    /** Borra el registro situado en el índice indicado. */
+    private static void borrarPorPosicion(int posicion) throws IOException {
+        try (RandomAccessFile raf = new RandomAccessFile(ARCHIVO_BD, "rw")) {
+            int total = totalRegistros(raf);
+            validarPosicion(posicion, total, false);
             for (int i = posicion; i < total - 1; i++) copiarRegistro(raf, i + 1, i);
             raf.setLength((long) (total - 1) * TAMANO_REGISTRO);
             System.out.println("Registro borrado.");
@@ -170,16 +181,13 @@ public class GestionCochesIA {
     }
 
     /** Modifica marca y modelo de un registro sin permitir cambiar su matrícula. */
-    private static void modificar(Scanner scanner) throws IOException {
+    private static void modificar(int posicion, String marca, String modelo) throws IOException {
         try (RandomAccessFile raf = new RandomAccessFile(ARCHIVO_BD, "rw")) {
             int total = totalRegistros(raf);
-            int posicion = leerEntero(scanner, "Posición (0 a " + (total - 1) + "): ");
             validarPosicion(posicion, total, false);
             raf.seek((long) posicion * TAMANO_REGISTRO);
             String matricula = leerCampo(raf, BYTES_MATRICULA);
             System.out.println("Matrícula (no modificable): " + matricula);
-            String marca = leerTexto(scanner, "Nueva marca: ");
-            String modelo = leerTexto(scanner, "Nuevo modelo: ");
             validarCampo(marca, BYTES_MARCA, "Marca"); validarCampo(modelo, BYTES_MODELO, "Modelo");
             raf.seek((long) posicion * TAMANO_REGISTRO);
             escribirRegistro(raf, matricula, marca, modelo);
