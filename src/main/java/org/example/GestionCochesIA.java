@@ -25,8 +25,13 @@ public class GestionCochesIA {
             boolean salir = false;
             while (!salir) {
                 System.out.println("\n--- GESTIÓN DE COCHES ---");
-                System.out.println("1. Cargar CSV  2. Insertar  3. Ordenar por matrícula");
-                System.out.println("4. Borrar  5. Modificar  6. Listar  7. Salir");
+                System.out.println("1. Cargar CSV");
+                System.out.println("2. Insertar");
+                System.out.println("3. Ordenar por matrícula");
+                System.out.println("4. Borrar");
+                System.out.println("5. Modificar");
+                System.out.println("6. Listar");
+                System.out.println("7. Salir");
                 int opcion = leerEntero(scanner, "Opción: ");
                 try {
                     switch (opcion) {
