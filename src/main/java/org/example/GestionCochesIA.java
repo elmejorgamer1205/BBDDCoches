@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
 
 /** Gestor de una base de datos de coches almacenada en registros de tamaño fijo. */
 public class GestionCochesIA {
@@ -21,65 +20,55 @@ public class GestionCochesIA {
 
     /** Inicia el menú de texto y atiende opciones hasta que el usuario sale. */
     public static void main(String[] args) {
-        try (Scanner scanner = new Scanner(System.in)) {
-            boolean salir = false;
-            while (!salir) {
-                System.out.println("\n--- GESTIÓN DE COCHES ---");
-                System.out.println("1. Cargar CSV");
-                System.out.println("2. Insertar");
-                System.out.println("3. Ordenar por matrícula");
-                System.out.println("4. Borrar");
-                System.out.println("5. Modificar");
-                System.out.println("6. Listar");
-                System.out.println("7. Salir");
-                int opcion = leerEntero(scanner.nextLine(), "Opción: ");
-                try {
-                    switch (opcion) {
-                        case 1 -> {
-                            System.out.print("Ruta del CSV [src/BBDD Coches.csv]: ");
-                            String ruta = scanner.nextLine().trim();
-                            cargarCsv(ruta.isEmpty() ? "src/BBDD Coches.csv" : ruta);
-                        }
-                        case 2 -> {
-                            System.out.print("Matrícula: "); String matricula = scanner.nextLine().trim();
-                            System.out.print("Marca: "); String marca = scanner.nextLine().trim();
-                            System.out.print("Modelo: "); String modelo = scanner.nextLine().trim();
-                            System.out.print("Posición de inserción: "); int posicion = leerEntero(scanner.nextLine(), "Posición");
-                            insertar(matricula, marca, modelo, posicion);
-                        }
-                        case 3 -> ordenar();
-                        case 4 -> {
-                            System.out.println("1. Por matrícula  2. Por posición");
-                            int modo = leerEntero(scanner.nextLine(), "Método");
-                            if (modo == 1) {
-                                System.out.print("Matrícula: "); borrarPorMatricula(scanner.nextLine().trim());
-                            } else if (modo == 2) {
-                                System.out.print("Posición: "); borrarPorPosicion(leerEntero(scanner.nextLine(), "Posición"));
-                            } else System.out.println("Método no válido.");
-                        }
-                        case 5 -> {
-                            System.out.print("Posición del registro: "); int posicion = leerEntero(scanner.nextLine(), "Posición");
-                            System.out.print("Nueva marca: "); String marca = scanner.nextLine().trim();
-                            System.out.print("Nuevo modelo: "); String modelo = scanner.nextLine().trim();
-                            modificar(posicion, marca, modelo);
-                        }
-                        case 6 -> listar();
-                        case 7 -> salir = true;
-                        default -> System.out.println("Opción no válida.");
+        boolean salir = false;
+        while (!salir) {
+            System.out.println("\n--- GESTIÓN DE COCHES ---");
+            System.out.println("1. Cargar CSV");
+            System.out.println("2. Insertar");
+            System.out.println("3. Ordenar por matrícula");
+            System.out.println("4. Borrar");
+            System.out.println("5. Modificar");
+            System.out.println("6. Listar");
+            System.out.println("7. Salir");
+            int opcion = MiEntradaSalida.leerEntero("Opción: ");
+            try {
+                switch (opcion) {
+                    case 1 -> {
+                        String ruta = MiEntradaSalida.leerLinea("Ruta del CSV [src/BBDD Coches.csv]: ").trim();
+                        cargarCsv(ruta.isEmpty() ? "src/BBDD Coches.csv" : ruta);
                     }
-                } catch (IOException | IllegalArgumentException e) {
-                    System.out.println("No se pudo completar la operación: " + e.getMessage());
+                    case 2 -> {
+                        String matricula = MiEntradaSalida.leerLinea("Matrícula: ").trim();
+                        String marca = MiEntradaSalida.leerLinea("Marca: ").trim();
+                        String modelo = MiEntradaSalida.leerLinea("Modelo: ").trim();
+                        int posicion = MiEntradaSalida.leerEntero("Posición de inserción: ");
+                        insertar(matricula, marca, modelo, posicion);
+                    }
+                    case 3 -> ordenar();
+                    case 4 -> {
+                        System.out.println("1. Por matrícula  2. Por posición");
+                        int modo = MiEntradaSalida.leerEntero("Método: ");
+                        if (modo == 1) {
+                            borrarPorMatricula(MiEntradaSalida.leerLinea("Matrícula: ").trim());
+                        } else if (modo == 2) {
+                            borrarPorPosicion(MiEntradaSalida.leerEntero("Posición: "));
+                        } else System.out.println("Método no válido.");
+                    }
+                    case 5 -> {
+                        int posicion = MiEntradaSalida.leerEntero("Posición del registro: ");
+                        String marca = MiEntradaSalida.leerLinea("Nueva marca: ").trim();
+                        String modelo = MiEntradaSalida.leerLinea("Nuevo modelo: ").trim();
+                        modificar(posicion, marca, modelo);
+                    }
+                    case 6 -> listar();
+                    case 7 -> salir = true;
+                    default -> System.out.println("Opción no válida.");
                 }
+            } catch (IOException | IllegalArgumentException e) {
+                System.out.println("No se pudo completar la operación: " + e.getMessage());
             }
         }
     }
-
-    /** Lee una línea y la convierte en entero, repitiendo la pregunta si no es válida. */
-    private static int leerEntero(String texto, String campo) {
-        try { return Integer.parseInt(texto.trim()); }
-        catch (NumberFormatException e) { throw new IllegalArgumentException(campo + " debe ser un número entero."); }
-    }
-
     /** Carga filas de un CSV separado por comas o punto y coma en la base de datos. */
     private static void cargarCsv(String ruta) throws IOException {
         int cargados = 0, omitidos = 0;
