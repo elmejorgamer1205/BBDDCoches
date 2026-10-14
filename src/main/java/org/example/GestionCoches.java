@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-/** Gestiona coches en un fichero binario de registros de longitud fija. */
 public class GestionCoches {
 
     private static final int BYTES_MATRICULA = 7;
