@@ -262,13 +262,14 @@ public class GestionCoches {
      * Copia un coche entero (71 bytes) de una posición a otra.
      */
     private static void copiarRegistro(RandomAccessFile raf, long posOrigen, long posDestino) throws IOException {
-        byte[] buffer = new byte[TAMANO_REGISTRO]; // Caja para los 71 bytes
+        // Caja para los 71 bytes
+        byte[] buffer = new byte[TAMANO_REGISTRO];
 
-        // 1. Leemos el coche de origen
+        //lee el coche de origen
         raf.seek(posOrigen * TAMANO_REGISTRO);
         raf.readFully(buffer);
 
-        // 2. Lo pegamos en el destino
+        //lo pego en el destino
         raf.seek(posDestino * TAMANO_REGISTRO);
         raf.write(buffer);
     }
